@@ -1,0 +1,75 @@
+version 2:
+
+models:
+  - name: rental_fact
+    description: >
+      Fact table at the rental transaction grain (one row per rental_id).
+      Contains rental activity measures such as rental_duration, rental_price,
+      late_fee, and amount_paid. Joined to customer_dim, film_dim, store_dim,
+      and date_dim via surrogate keys to support analysis of rentals and revenue
+      across customers, films, stores, and time.
+    columns:
+      - name: rental_key
+        description: Surrogate key uniquely identifying each rental fact row.
+        tests:
+          - unique
+          - not_null
+      - name: film_key
+        description: Foreign key to film_dim for the rented film.
+        tests:
+          - not_null
+          - relationships:
+              field: film_key
+              to: ref('film_dim')
+      - name: customer_key
+        description: Foreign key to customer_dim for the renting customer.
+        tests:
+          - not_null
+          - relationships:
+              field: customer_key
+              to: ref('customer_dim')
+      - name: store_key
+        description: Foreign key to store_dim for the store fulfilling the rental.
+        tests:
+          - not_null
+          - relationships:
+              field: store_key
+              to: ref('store_dim')
+      - name: date
+        description: Rental date (joins to date_dim.date).
+        tests:
+          - not_null
+          - relationships:
+              field: date
+              to: ref('date_dim')
+      - name: rental_id
+        description: Natural key of the rental transaction from the source system.
+        tests:
+          - not_null
+      - name: rental_duration
+        description: Number of days between rental_date and return_date.
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+              config:
+                where: "rental_duration IS NOT NULL"
+      - name: rental_price
+        description: Rental price charged for the rental based on film rental_rate.
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: late_fee
+        description: Late fee amount for the rental; null when return_date is null or not late.
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+              config:
+                where: "late_fee IS NOT NULL"
+      - name: amount_paid
+        description: Total payment amount recorded for the rental (sum of payments).
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+              config:
+                where: "amount_paid IS NOT NULL"

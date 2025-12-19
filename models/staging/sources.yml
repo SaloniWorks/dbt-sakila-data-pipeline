@@ -1,0 +1,18 @@
+version: 2
+
+sources:
+  - name: sakila_source_data
+    database: SAKILA_DB
+    schema: SOURCE_DATA
+    tables:
+      - name: customer
+      - name: city
+      - name: country
+      - name: store
+      - name: film
+      - name: rental
+      - name: language
+      - name: payment
+      - name: address
+      - name: inventory
+      

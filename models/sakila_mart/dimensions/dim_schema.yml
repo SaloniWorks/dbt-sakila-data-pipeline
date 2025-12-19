@@ -1,0 +1,176 @@
+version 2:
+
+models:
+  - name: customer_dim
+    description: >
+      Customer dimension table containing customer attributes (name, contact and location).
+      Each row represents a unique customer record identified by customer_key.
+      A single customer_id may appear in multiple rows over time as new versions
+      of the customer record are loaded incrementally. This dimension is joined
+      to rental_fact via customer_key to support customer-level analysis.
+    columns:
+      - name: customer_key
+        description: Surrogate key uniquely identifying each customer record row (version) in the dimension.
+        tests:
+          - unique
+          - not_null
+      - name: customer_id
+        description: Natural customer identifier from the source system; may repeat across multiple rows if multiple versions are loaded.
+        tests:
+          - not_null
+      - name: customer_first_name
+        description: Customer's first name for this record version.
+        tests:
+          - not_null
+      - name: customer_last_name
+        description: Customer's last name for this record version.
+        tests:
+          - not_null
+      - name: customer_email
+        description: Customer's email address for this record version.
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: "RLIKE '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$'"
+              config:
+                where: "customer_email is not null"
+      - name: customer_city
+        description: City associated with the customer record.
+        tests:
+          - relationships:
+              field: city
+              to: ref('city_snap')
+      - name: customer_country
+        description: Country associated with the customer record.
+        tests:
+          - relationships:
+              field: country
+              to: ref('country_snap')
+      - name: valid_from
+        description: Timestamp indicating when this version of the customer record became effective.
+      - name: valid_to
+        description: Timestamp indicating when this version of the customer record expired; null if current.
+  
+  - name: film_dim
+    description: >
+      Film dimension table containing descriptive attributes for films.
+      Each row represents a unique film record identified by film_key.
+      This dimension provides film-related context such as title, category,
+      language, and rental attributes, and is joined to the rental_fact table
+      to support analysis related to film.
+    columns:
+      - name: film_key
+        description: Surrogate key uniquely identifying each film record in the dimension.
+        tests: 
+          - unique
+          - not_null
+      - name: film_id
+        description: Natural key identifying the film in the source system.
+        tests:
+          - not_null
+      - name: film_title
+        description: Title of the film.
+        tests:
+          - not_null
+      - name: film_rating
+        description: Rating assigned to the film.
+        tests:
+          - accepted_values:
+              values: ['PG', 'G', 'PG-13', 'NC-17', 'R']
+      - name: rental_rate
+        description: Rating assigned to the film.
+        tests:
+          - not_null
+      - name: film_language
+        description: Language in which the film is available.
+        tests:
+          - relationships:
+              field: film_language
+              to: ref('language_snap')
+      - name: valid_from
+        description: Timestamp indicating when this version of the film record became effective.
+      - name: valid_to
+        description: Timestamp indicating when this version of the film record expired; null if current.
+ 
+  - name: store_dim
+    description: >
+      Store dimension table containing descriptive attributes for stores.
+      Each row represents a unique store record identified by store_key.
+      This dimension is joined to the rental_fact table to enable analysis
+      of rental activity by store and store location.
+    columns:
+      - name: store_key
+        description: Surrogate key uniquely identifying each store record (version) in the store dimension.
+        tests:
+          - unique
+          - not_null
+      - name: store_id
+        description: Natural key identifying the store in the source system.
+        tests:
+          - not_null
+      - name: store_city
+        description: City where the store is located.
+        tests:
+          - relationships:
+              field: city
+              to: ref('city_snap')
+      - name: store_country
+        description: Country where the store is located.
+        tests:
+          - relationships:
+              field: country
+              to: ref('country_snap')
+      - name: valid_from
+        description: Timestamp indicating when this version of the store record became effective.
+      - name: valid_to
+        description: Timestamp indicating when this version of the store record expired; null if current.
+
+  - name: date_dim
+    description: >
+      Date dimension table providing calendar attributes for rental dates.
+      Each row represents a single calendar date derived from rental activity.
+      This dimension enables time-based analysis of rentals and revenue,
+      including weekday versus weekend behavior and U.S. holiday identification.
+    columns:
+      - name: date
+        description: Calendar date representing the rental date. Serves as the primary date attribute for joining to fact tables.
+        tests:
+          - unique
+          - not_null
+      - name: day_of_week
+        description: Numeric representation of the day of the week for the date.
+        tests:
+          - not_null
+          - accepted_values:
+              values: [0, 1, 2, 3, 4, 5, 6]
+      - name: week
+        description: Week number of the year corresponding to the date.
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "BETWEEN 1 AND 53"
+      - name: month
+        description: Month number corresponding to the date.
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "BETWEEN 1 AND 12"
+      - name: year
+        description: Calendar year corresponding to the date.
+        tests:
+          - not_null
+      - name: weekday_flag
+        description: >
+          Indicator flag showing whether the date is a weekday
+          (1 = weekday, 0 = weekend).
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1,0]
+      - name: holiday_flag
+        description: >
+          Indicator flag showing whether the date is a U.S. federal holiday
+          (1 = holiday, 0 = non-holiday).
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1,0]
