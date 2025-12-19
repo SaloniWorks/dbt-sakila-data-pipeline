@@ -94,7 +94,7 @@ Tests implemented in this project include:
   efficient updates as new rental data becomes available.
 - The `date_dim` is derived from observed rental dates and enriched with U.S. federal
   holiday indicators for the years 2024 and 2025.
-- Dimension tables are modeled as Slowly Changing Dimensions (Type 2) to preserve
+- Selected dimension tables are modeled as Slowly Changing Dimensions (Type 2) to preserve
   historical attribute changes; snapshot metadata is used internally to support this behavior.
 
 
