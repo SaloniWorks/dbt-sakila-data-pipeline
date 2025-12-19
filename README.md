@@ -48,6 +48,7 @@ The warehouse is modeled using a star schema to support analytical queries on re
 This repository contains the dbt transformation layer for the Sakila warehouse:
 
 - **models/**: dbt models organized into staging and mart layers (dimensions and fact tables)
+- **snapshots/**: dbt snapshots used to track source-level changes and support Slowly Changing Dimension (Type 2) modeling in selected dimension tables
 - **schema.yml** files: model documentation and data quality tests (unique, not_null, relationships, accepted values, and expression-based tests)
 - **packages.yml**: dbt package dependencies (e.g., `dbt_utils`)
 
@@ -81,6 +82,8 @@ Tests implemented in this project include:
 - **Domain tests**: accepted values for flags and categorical fields 
 - **Range and logic checks**: expression-based tests for numeric measures and date attributes
 - **Incremental safety checks**: ensuring uniqueness and consistency after incremental merges
+- **SCD integrity checks**: validation of surrogate key uniqueness and temporal consistency
+  for Type 2 dimensions (e.g., one current record per business key)
 
 
 ## Notes & Assumptions
@@ -91,7 +94,7 @@ Tests implemented in this project include:
   efficient updates as new rental data becomes available.
 - The `date_dim` is derived from observed rental dates and enriched with U.S. federal
   holiday indicators for the years 2024 and 2025.
-- Dimension tables are modeled as current-state dimensions unless explicitly noted
-  otherwise.
+- Dimension tables are modeled as Slowly Changing Dimensions (Type 2) to preserve
+  historical attribute changes; snapshot metadata is used internally to support this behavior.
 
 
